@@ -3,8 +3,24 @@ FoundationDB.Net Client
 
 This code is licensed under the 3-clause BSD License.
 
-[![Build status](https://ci.appveyor.com/api/projects/status/83u4pd2ckevdtb57?svg=true)](https://ci.appveyor.com/project/KrzysFR/foundationdb-dotnet-client)
-[![foundationdb-dotnet-client MyGet Build Status](https://www.myget.org/BuildSource/Badge/foundationdb-dotnet-client?identifier=faedfb95-0e53-4c43-9bb3-dae95d59e2b8)](https://www.myget.org/feed/Packages/foundationdb-dotnet-client)
+!Important! This is no substitute for the original Doxense library just a test bench for FreeBSD.
+Since there has been progress with that library recently this will just need to be reconciled slightly if needed but may actually run as is. I highly suggest giving that a try first. This was work done to get these tests going with FoundationDB on FreeBSD 6.10 release.
+
+Coding conventions were broken and horrible things were done to make this work but tests pass- however logging is broken.
+
+In the file FoundationDB.Client/Native/FdbNative.cs starting on Line 272 you will see hardcoded paths to the libraries:
+
+    // we need to provide sensible defaults for loading the native library
+    // if this method returns null we'll let PInvoke deal
+    // otherwise - use explicit platform-specific dll loading
+			
+    //MacOS
+    //var libraryPath = "/usr/local/lib/libfdb_c.dylib";
+
+    //FreeBSD
+    var libraryPath = "/lib/libfdb_c.so";
+	
+This is all that is needed with the current FreeBSD FDB build to make it work- you have been warned ;)
 
 How to use
 ----------
