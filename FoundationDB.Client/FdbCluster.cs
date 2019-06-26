@@ -43,6 +43,9 @@ namespace FoundationDB.Client
 		/// <summary>Underlying handler for this cluster (native, dummy, memory, ...)</summary>
 		private readonly IFdbClusterHandler m_handler;
 
+		//private readonly IFdbDatabaseHandler d_handler;
+		
+
 		/// <summary>Path to the cluster file used by this connection</summary>
 		private readonly string m_path;
 
@@ -137,6 +140,12 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", $"Connected to database '{databaseName}'");
 
 			return FdbDatabase.Create(this, handler, databaseName, subspace, null, readOnly, ownsCluster);
+		}
+
+		internal DatabaseHandle CreateDatabase(string databaseName)
+		{
+			var err = FdbNative.CreateDatabase(databaseName, out DatabaseHandle db);
+			return db;
 		}
 
 		/// <summary>Set an option on this cluster that does not take any parameter</summary>

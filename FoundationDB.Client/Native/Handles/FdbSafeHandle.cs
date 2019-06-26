@@ -39,19 +39,19 @@ namespace FoundationDB.Client.Native
 	// For Windows, we can use a CriticalHandle which will give us a bit more performance (no reference counting)
 
 	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>
-#if __MonoCS__
-	[StructLayout(LayoutKind.Sequential)]
+//#if __MonoCS__
+	[StructLayout(LayoutKind.Auto)]
 	internal abstract class FdbSafeHandle : SafeHandle
-#else
-	internal abstract class FdbSafeHandle : CriticalHandle
-#endif
+//#else
+	//internal abstract class FdbSafeHandle : CriticalHandle
+//#endif
 	{
 		protected FdbSafeHandle()
-#if __MonoCS__
+//#if __MonoCS__
 			: base(IntPtr.Zero, true)
-#else
-			: base(IntPtr.Zero)
-#endif
+//#else
+			//: base(IntPtr.Zero)
+//#endif
 		{ }
 
 		public override bool IsInvalid
@@ -80,7 +80,7 @@ namespace FoundationDB.Client.Native
 			return true;
 		}
 
-#if NOT_USED
+//#if NOT_USED
 		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
 		internal bool TrySetHandle(IntPtr handle)
 		{
@@ -90,7 +90,7 @@ namespace FoundationDB.Client.Native
 #endif
 			return handle != IntPtr.Zero;
 		}
-#endif
+//#endif
 
 		/// <summary>Return the value of the FDBFuture handle, for logging purpose only</summary>
 		internal IntPtr Handle

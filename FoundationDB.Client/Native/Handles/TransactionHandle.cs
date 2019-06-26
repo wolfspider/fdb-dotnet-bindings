@@ -30,15 +30,15 @@ namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Client.Utils;
 	using System;
-#if __MonoCS__
+//#if __MonoCS__
 	using System.Runtime.InteropServices;
-#endif
+//#endif
 	using System.Threading;
 
 	/// <summary>Wrapper on a FDBTransaction*</summary>
-#if __MonoCS__
-	[StructLayout(LayoutKind.Sequential)]
-#endif
+//#if __MonoCS__
+	[StructLayout(LayoutKind.Auto)]
+//#endif
 	internal sealed class TransactionHandle : FdbSafeHandle
 	{
 

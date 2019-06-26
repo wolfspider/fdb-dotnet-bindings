@@ -42,6 +42,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Native;
 	using FoundationDB.DependencyInjection;
 	using JetBrains.Annotations;
+	using FoundationDB.Client.Core;
 
 	/// <summary>FoundationDB binding</summary>
 	[PublicAPI]
@@ -66,7 +67,7 @@ namespace FoundationDB.Client
 		internal const int MaxSafeApiVersion = FdbNative.FDB_API_MAX_VERSION;
 
 		/// <summary>Default API version that will be selected, if the application does not specify otherwise.</summary>
-		internal const int DefaultApiVersion = 600; // v6.0.x
+		internal const int DefaultApiVersion = 610; // v6.0.x
 		//INVARIANT: MinSafeApiVersion <= DefaultApiVersion <= MaxSafeApiVersion
 
 		#endregion
@@ -506,7 +507,7 @@ namespace FoundationDB.Client
 		[ItemNotNull]
 		private static async Task<FdbCluster> CreateClusterInternalAsync([CanBeNull] string clusterFile, CancellationToken ct)
 		{
-			EnsureIsStarted();
+			//EnsureIsStarted();
 
 			// "" should also be considered to mean "default cluster file"
 			if (string.IsNullOrEmpty(clusterFile)) clusterFile = null;
@@ -518,8 +519,16 @@ namespace FoundationDB.Client
 			//TODO: check the path ? (exists, readable, ...)
 
 			//TODO: have a way to configure the default IFdbClusterHandler !
-			var handler = await FdbNativeCluster.CreateClusterAsync(clusterFile, ct).ConfigureAwait(false);
-			return new FdbCluster(handler, clusterFile);
+
+			var ClusterHandle = new ClusterHandle();
+
+			var chandler = new FdbNativeCluster(ClusterHandle);
+
+
+
+			// handler = await FdbNativeCluster.CreateClusterAsync(clusterFile, ct).ConfigureAwait(false);
+			//FdbNative.ClusterCreateDatabase(ClusterHandle, "DB");
+			return new FdbCluster(chandler, clusterFile);
 		}
 
 		#endregion
@@ -631,7 +640,8 @@ namespace FoundationDB.Client
 			try
 			{
 				cluster = await CreateClusterInternalAsync(clusterFile, ct).ConfigureAwait(false);
-				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
+
+						//note: since the cluster is not provided by the caller, link it with the database's Dispose()
 				db = await cluster.OpenDatabaseInternalAsync(dbName, globalSpace, readOnly: !hasPartition && readOnly, ownsCluster: true, ct: ct).ConfigureAwait(false);
 
 				// set the default options
@@ -690,10 +700,10 @@ namespace FoundationDB.Client
 
 			s_started = true;
 
-			apiVersion = CheckApiVersion(apiVersion);
+			//apiVersion = CheckApiVersion(apiVersion);
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", $"Selecting fdb API version {apiVersion}");
 
-			FdbError err = FdbNative.SelectApiVersion(apiVersion);
+			FdbError err = FdbNative.SelectApiVersion(610);
 			if (err != FdbError.Success)
 			{
 				if (Logging.On) Logging.Error(typeof(Fdb), "Start", $"Failed to fdb API version {apiVersion}: {err}");

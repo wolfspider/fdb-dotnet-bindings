@@ -169,12 +169,14 @@ namespace FdbBurner
 					bool repaint = true;
 
 					var processName = Process.GetCurrentProcess().ProcessName;
+
+					/*
 					var perCpu = new PerformanceCounter("Process", "% Processor Time", processName);
 					var perfDiskReads = new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", "0 C:");
 					var perfDiskWrites = new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", "0 C:");
 					var perfDiskWriteIops = new PerformanceCounter("PhysicalDisk", "Disk Writes/sec", "0 C:");
 					var perfDiskReadIops = new PerformanceCounter("PhysicalDisk", "Disk Reads/sec", "0 C:");
-
+					*/
 					const int COL0 = 1;
 					const int COL1 = COL0 + 15;
 					const int COL2 = COL1 + 15;
@@ -248,10 +250,10 @@ namespace FdbBurner
 						long curKeys =  Volatile.Read(ref Keys);
 						long curTrans = Volatile.Read(ref Transactions);
 						long curBytes = Volatile.Read(ref Bytes);
-						double curDiskWrites = perfDiskWrites.NextValue();
-						double curDiskReads = perfDiskReads.NextValue();
-						double curDiskWriteIo = perfDiskWriteIops.NextValue();
-						double curDiskReadIo = perfDiskReadIops.NextValue();
+						double curDiskWrites = 0;
+						double curDiskReads = 0;
+						double curDiskWriteIo = 0;
+						double curDiskReadIo = 0;
 
 						while (history.Count >= CAPACITY) history.Dequeue();
 

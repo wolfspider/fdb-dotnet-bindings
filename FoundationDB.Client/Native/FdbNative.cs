@@ -43,14 +43,14 @@ namespace FoundationDB.Client.Native
 	internal static unsafe class FdbNative
 	{
 		public const int FDB_API_MIN_VERSION = 200;
-		public const int FDB_API_MAX_VERSION = 600;
+		public const int FDB_API_MAX_VERSION = 610;
 
 #if __MonoCS__
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
 		private const string FDB_C_DLL = "libfdb_c.so";
 #else
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
-		private const string FDB_C_DLL = "fdb_c";
+		private const string FDB_C_DLL = "libfdb_c";
 #endif
 
 		/// <summary>Handle on the native FDB C API library</summary>
@@ -63,7 +63,7 @@ namespace FoundationDB.Client.Native
 		public delegate void FdbFutureCallback(IntPtr future, IntPtr parameter);
 
 		/// <summary>Contain all the stubs to the methods exposed by the C API library</summary>
-		[System.Security.SuppressUnmanagedCodeSecurity]
+		[StructLayout(LayoutKind.Auto),System.Security.SuppressUnmanagedCodeSecurity]
 		internal static class NativeMethods
 		{
 
@@ -107,6 +107,9 @@ namespace FoundationDB.Client.Native
 			public static extern FutureHandle fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
 
 			// Database
+
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
+			public static extern FdbError fdb_create_database([MarshalAs(UnmanagedType.LPStr)] string dbName, out DatabaseHandle database);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_database_destroy(IntPtr database);
@@ -269,7 +272,12 @@ namespace FoundationDB.Client.Native
 			// we need to provide sensible defaults for loading the native library
 			// if this method returns null we'll let PInvoke deal
 			// otherwise - use explicit platform-specific dll loading
-			var libraryPath = Fdb.Options.NativeLibPath;
+			
+			//MacOS
+			//var libraryPath = "/usr/local/lib/libfdb_c.dylib";
+
+			//FreeBSD
+			var libraryPath = "/lib/libfdb_c.so";
 
 			// on non-windows, library loading by convention just works.
 			// unless override is provided, just let PInvoke do the work
@@ -356,7 +364,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>fdb_select_api_impl</summary>
 		public static FdbError SelectApiVersionImpl(int runtimeVersion, int headerVersion)
 		{
-			EnsureLibraryIsLoaded();
+			//EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_select_api_version_impl(runtimeVersion, headerVersion);
 		}
 
@@ -369,7 +377,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>fdb_get_max_api_version</summary>
 		public static int GetMaxApiVersion()
 		{
-			EnsureLibraryIsLoaded();
+			//EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_get_max_api_version();
 		}
 
@@ -432,26 +440,30 @@ namespace FoundationDB.Client.Native
 
 		public static FdbError NetworkSetOption(FdbNetworkOption option, byte* value, int valueLength)
 		{
-			EnsureLibraryIsLoaded();
+			//EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_network_set_option(option, value, valueLength);
+			//return FdbError.Success;
 		}
 
 		public static FdbError SetupNetwork()
 		{
-			EnsureLibraryIsLoaded();
+			//EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_setup_network();
+			//return FdbError.Success;
 		}
 
 		public static FdbError RunNetwork()
 		{
-			EnsureLibraryIsLoaded();
+			//EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_run_network();
+			//return FdbError.Success;
 		}
 
 		public static FdbError StopNetwork()
 		{
-			EnsureLibraryIsLoaded();
+			//EnsureLibraryIsLoaded();
 			return NativeMethods.fdb_stop_network();
+			//return FdbError.Success;
 		}
 
 		#endregion
@@ -506,6 +518,16 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
+		public static DatabaseHandle CreateDatabase(string name, out DatabaseHandle database)
+		{
+			NativeMethods.fdb_create_database(name, out database);
+
+			Console.WriteLine("fdb_cluster_create_database(0x" + database.Handle.ToString("x") + ", name: '" + name + "') => 0x");
+
+			return database;
+
+		}
+
 		public static FdbError DatabaseSetOption(DatabaseHandle database, FdbDatabaseOption option, byte* value, int valueLength)
 		{
 			return NativeMethods.fdb_database_set_option(database, option, value, valueLength);
@@ -548,11 +570,31 @@ namespace FoundationDB.Client.Native
 
 		public static FdbError DatabaseCreateTransaction(DatabaseHandle database, out TransactionHandle transaction)
 		{
-			var err = NativeMethods.fdb_database_create_transaction(database, out transaction);
+			FdbError err;
+
+			try
+			{
+			    err = NativeMethods.fdb_database_create_transaction(database, out transaction);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_database_create_transaction(0x" + database.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + transaction.Handle.ToString("x"));
 #endif
+				return err;
+			}
+			catch (Exception ex)
+			{
+				err = FdbError.UnknownError;
+
+				Console.WriteLine(ex.ToString());
+
+
+			}
+
+			transaction = null;
+
+			err = FdbError.UnknownError;
+
 			return err;
+
 		}
 
 		public static FutureHandle TransactionCommit(TransactionHandle transaction)

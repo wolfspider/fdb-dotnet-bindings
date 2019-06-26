@@ -89,7 +89,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Key helper for a dynamic TypeSystem</summary>
-	[DebuggerDisplay("{Parent.ToString(),nq)}")]
+	[DebuggerDisplay("{Parent.ToString()}")]
 	[PublicAPI]
 	public sealed class DynamicKeys
 	{
@@ -460,7 +460,7 @@ namespace FoundationDB.Client
 	}
 
 	/// <summary>Partition helper for a dynamic TypeSystem</summary>
-	[DebuggerDisplay("{Parent.ToString(),nq)}")]
+	[DebuggerDisplay("{Parent.ToString()}")]
 	[PublicAPI]
 	public sealed class DynamicPartition
 	{

@@ -38,6 +38,7 @@ namespace FoundationDB.Client.Native
 	internal sealed class FdbNativeCluster : IFdbClusterHandler
 	{
 		private readonly ClusterHandle m_handle;
+		private DatabaseHandle d_handle;
 
 		public FdbNativeCluster(ClusterHandle handle)
 		{
@@ -48,6 +49,7 @@ namespace FoundationDB.Client.Native
 		public static Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken ct)
 		{
 			var future = FdbNative.CreateCluster(clusterFile);
+
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
@@ -63,6 +65,8 @@ namespace FoundationDB.Client.Native
 				ct
 			);
 		}
+
+		internal DatabaseHandle DHandle => d_handle;
 
 		internal ClusterHandle Handle => m_handle;
 
@@ -83,26 +87,24 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		public DatabaseHandle CreateDatabase(string databaseName)
+		{
+
+			FdbNative.CreateDatabase(databaseName, out d_handle);
+			return d_handle;
+		
+		}
+
+
 		public Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken ct)
 		{
 			if (ct.IsCancellationRequested) return Task.FromCanceled<IFdbDatabaseHandler>(ct);
 
-			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
-			return FdbFuture.CreateTaskFromHandle(
-				future,
-				(h) =>
-				{
-					var err = FdbNative.FutureGetDatabase(h, out DatabaseHandle database);
-					if (err != FdbError.Success)
-					{
-						database.Dispose();
-						throw Fdb.MapToException(err);
-					}
-					var handler = new FdbNativeDatabase(database);
-					return (IFdbDatabaseHandler) handler;
-				},
-				ct
-			);
+			return Task.Run(() => {
+				var handler = new FdbNativeDatabase(CreateDatabase("/usr/local/etc/foundationdb/fdb.cluster"));
+				return (IFdbDatabaseHandler) handler;
+			});
+
 		}
 
 		public void Dispose()

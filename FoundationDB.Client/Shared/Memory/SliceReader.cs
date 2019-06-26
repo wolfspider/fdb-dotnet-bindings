@@ -294,30 +294,37 @@ namespace Doxense.Memory
 		[Pure]
 		public Slice ReadByteString()
 		{
-			var buffer = this.Buffer.Array;
-			int start = this.Buffer.Offset + this.Position;
-			int p = start;
-			int end = this.Buffer.Offset + this.Buffer.Count;
+		
+				var buffer = this.Buffer.Array;
+				int start = this.Buffer.Offset + this.Position;
+				
+				int p = start;
+				int end = this.Buffer.Offset + this.Buffer.Count;
+				
 
-			while (p < end)
-			{
-				byte b = buffer[p++];
-				if (b == 0)
+				while (p < end)
 				{
-					//TODO: decode \0\xFF ?
-					if (p < end && buffer[p] == 0xFF)
+					byte b = buffer[p++];
+
+				     
+					if (b == 0)
 					{
-						// skip the next byte and continue
-						p++;
-						continue;
+						//TODO: decode \0\xFF ?
+						if (p < end && buffer[p] == 0xFF)
+						{
+							// skip the next byte and continue
+							p++;
+							continue;
+						}
+
+						this.Position = p - this.Buffer.Offset;
+
+						var slice = new Slice(buffer, start, p - start);
+						return slice;
 					}
-
-					this.Position = p - this.Buffer.Offset;
-					return new Slice(buffer, start, p - start);
 				}
-			}
 
-			throw ThrowHelper.FormatException("Truncated byte string (expected terminal NUL not found)");
+				throw ThrowHelper.FormatException("Truncated byte string (expected terminal NUL not found)");
 		}
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>

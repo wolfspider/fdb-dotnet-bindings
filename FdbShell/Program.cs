@@ -175,7 +175,7 @@ namespace FdbShell
 
 			try
 			{
-				Fdb.Start(Fdb.GetMaxSafeApiVersion(200, Fdb.GetDefaultApiVersion()));
+				Fdb.Start(600);
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();

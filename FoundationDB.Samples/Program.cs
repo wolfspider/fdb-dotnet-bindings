@@ -24,7 +24,7 @@ namespace FoundationDB.Samples
 	{
 		private static IFdbDatabase Db;
 
-		private static bool LogEnabled;
+		private static bool LogEnabled = false;
 		private static string CurrentDirectoryPath = "/";
 
 		static StreamWriter GetLogFile(string name)
@@ -126,7 +126,7 @@ namespace FoundationDB.Samples
 		{
 			bool stop = false;
 
-			string clusterFile = null;
+			string clusterFile = "/usr/local/etc/foundationdb/fdb.cluster";
 			var dbName = "DB";
 			var partition = new string[0];
 
@@ -171,13 +171,14 @@ namespace FoundationDB.Samples
 
 			var go = new CancellationTokenSource();
 
+
 			// Initialize FDB
-			Fdb.Start(Fdb.GetDefaultApiVersion());
+			Fdb.Start(610);
 			try
 			{
 				var options = new FdbConnectionOptions
 				{
-					ClusterFile = clusterFile,
+					ClusterFile = "/usr/local/etc/foundationdb/fdb.cluster",
 					DbName = dbName,
 					PartitionPath = partition,
 				};

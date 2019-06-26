@@ -247,7 +247,7 @@ namespace FoundationDB.Tests.Sandbox
 				Fdb.Stop();
 			}
 #if DEBUG
-			Console.ReadLine();
+			//Console.ReadLine();
 #endif
 		}
 
@@ -287,6 +287,7 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("> Read Version = " + readVersion);
 
 				Console.WriteLine("Getting 'hello'...");
+				trans.Set(location.Keys.Encode("hello"), Slice.FromString("hello"));
 				var result = await trans.GetAsync(location.Keys.Encode("hello"));
 				if (result.IsNull)
 					Console.WriteLine("> hello NOT FOUND");
@@ -711,7 +712,7 @@ namespace FoundationDB.Tests.Sandbox
 			{
 				Console.WriteLine("Reading all keys...");
 				var sw = Stopwatch.StartNew();
-				var items = await tr.GetRangeStartsWith(subspace).ToListAsync();
+				var items = await tr.GetRangeStartsWith(subspace).ToListAsync(ct);
 				sw.Stop();
 				Console.WriteLine($"Took {FormatTimeMilli(sw.Elapsed.TotalMilliseconds)} to get {items.Count.ToString("N0", CultureInfo.InvariantCulture)} results ({items.Count / sw.Elapsed.TotalSeconds:N0} keys/sec)");
 			}

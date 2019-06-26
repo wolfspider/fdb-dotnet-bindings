@@ -32,9 +32,9 @@ namespace FoundationDB.Samples.Tutorials
 
 		public IDynamicKeySubspace Subspace { get; private set; }
 
-		protected Slice ClassKey(string c)
+		protected Slice ClassKey(string c, IDynamicKeySubspace subspace) 
 		{
-			return this.Subspace.Keys.Encode("class", c);
+			return subspace.Keys.Encode("class", c);
 		}
 
 		protected Slice AttendsKey(string s, string c)
@@ -53,9 +53,32 @@ namespace FoundationDB.Samples.Tutorials
 		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
+
+			//this.Subspace = db.GlobalSpace;
+			
+			var subspace = db.GlobalSpace;
+
+			
+			await db.ReadWriteAsync(tr =>
+            {
+                tr.ClearRange(subspace);
+
+				// insert all the classes
+				foreach (var c in this.ClassNames)
+				{
+					tr.Set(ClassKey(c, subspace), Slice.FromStringAscii("100"));
+				}
+				Console.WriteLine("inserted range..");
+
+				return subspace;
+            }, ct);
+			  
+			
+			
+			/* 
 			this.Subspace = await db.ReadWriteAsync(async tr =>
 			{
-				var subspace = await db.Directory.CreateOrOpenAsync(tr, new[] { "Tutorials", "ClassScheduling" });
+				var subspace = db.GlobalSpace;
 
 				// clear all previous values
 				tr.ClearRange(subspace);
@@ -63,11 +86,13 @@ namespace FoundationDB.Samples.Tutorials
 				// insert all the classes
 				foreach (var c in this.ClassNames)
 				{
-					tr.Set(ClassKey(c), Slice.FromStringAscii("100"));
+					tr.Set(ClassKey(c), Slice.FromString("100"));
 				}
 
 				return subspace;
 			}, ct);
+
+			*/
 		}
 
 		/// <summary>
@@ -84,7 +109,7 @@ namespace FoundationDB.Samples.Tutorials
 		/// <summary>
 		/// Signup a student to a class
 		/// </summary>
-		public async Task Signup(IFdbTransaction tr, string s, string c)
+		public async Task Signup(IFdbTransaction tr, string s, string c, IDynamicKeySubspace subspace)
 		{
 			var rec = AttendsKey(s, c);
 
@@ -92,7 +117,7 @@ namespace FoundationDB.Samples.Tutorials
 			{ // already signed up
 				return;
 			}
-			int seatsLeft = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii());
+			int seatsLeft = Int32.Parse((await tr.GetAsync(ClassKey(c, subspace))).ToStringAscii());
 			if (seatsLeft <= 0)
 			{
 				throw new InvalidOperationException("No remaining seats");
@@ -101,14 +126,14 @@ namespace FoundationDB.Samples.Tutorials
 			var classes = await tr.GetRange(AttendsKeys(s)).ToListAsync();
 			if (classes.Count >= 5) throw new InvalidOperationException("Too many classes");
 
-			tr.Set(ClassKey(c), Slice.FromStringAscii((seatsLeft - 1).ToString()));
+			tr.Set(ClassKey(c, subspace), Slice.FromStringAscii((seatsLeft - 1).ToString()));
 			tr.Set(rec, Slice.Empty);
 		}
 
 		/// <summary>
 		/// Drop a student from a class
 		/// </summary>
-		public async Task Drop(IFdbTransaction tr, string s, string c)
+		public async Task Drop(IFdbTransaction tr, string s, string c, IDynamicKeySubspace subspace)
 		{
 			var rec = AttendsKey(s, c);
 			if ((await tr.GetAsync(rec)).IsNullOrEmpty)
@@ -116,18 +141,18 @@ namespace FoundationDB.Samples.Tutorials
 				return;
 			}
 
-			var students = Int32.Parse((await tr.GetAsync(ClassKey(c))).ToStringAscii());
-			tr.Set(ClassKey(c), Slice.FromStringAscii((students + 1).ToString()));
+			var students = Int32.Parse((await tr.GetAsync(ClassKey(c, subspace))).ToStringAscii());
+			tr.Set(ClassKey(c, subspace), Slice.FromStringAscii((students + 1).ToString()));
 			tr.Clear(rec);
 		}
 
 		/// <summary>
 		/// Drop a student from a class, and sign him up to another class
 		/// </summary>
-		public async Task Switch(IFdbTransaction tr, string s, string oldC, string newC)
+		public async Task Switch(IFdbTransaction tr, string s, string oldC, string newC, IDynamicKeySubspace subspace)
 		{
-			await Drop(tr, s, oldC);
-			await Signup(tr, s, newC);
+			await Drop(tr, s, oldC, subspace);
+			await Signup(tr, s, newC, subspace);
 		}
 
 		/// <summary>
@@ -162,14 +187,14 @@ namespace FoundationDB.Samples.Tutorials
 						case "add":
 						{
 							string @class = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Signup(tr, student, @class), ct);
+							await db.ReadWriteAsync((tr) => Signup(tr, student, @class, db.GlobalSpace), ct);
 							myClasses.Add(@class);
 							break;
 						}
 						case "drop":
 						{
 							string @class = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Drop(tr, student, @class), ct);
+							await db.ReadWriteAsync((tr) => Drop(tr, student, @class, db.GlobalSpace), ct);
 							myClasses.Remove(@class);
 							break;
 						}
@@ -177,7 +202,7 @@ namespace FoundationDB.Samples.Tutorials
 						{
 							string oldClass = allClasses[rnd.Next(allClasses.Count)];
 							string newClass = allClasses[rnd.Next(allClasses.Count)];
-							await db.ReadWriteAsync((tr) => Switch(tr, student, oldClass, newClass), ct);
+							await db.ReadWriteAsync((tr) => Switch(tr, student, oldClass, newClass, db.GlobalSpace), ct);
 							myClasses.Remove(oldClass);
 							myClasses.Add(newClass);
 							break;
@@ -207,6 +232,7 @@ namespace FoundationDB.Samples.Tutorials
 		{
 			const int STUDENTS = 10;
 			const int OPS_PER_STUDENTS = 10;
+			this.Subspace = db.GlobalSpace;
 
 			await Init(db, ct);
 			log.WriteLine("# Class sheduling test initialized");
